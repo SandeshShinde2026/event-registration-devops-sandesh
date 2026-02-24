@@ -26,6 +26,14 @@ def register():
                     --accent: #22c55e;
                 }}
                 
+                [data-theme="light"] {{
+                    --bg: #f8fafc;
+                    --surface: #ffffff;
+                    --text-primary: #0f172a;
+                    --text-secondary: #64748b;
+                    --accent: #16a34a;
+                }}
+
                 body {{
                     font-family: 'Plus Jakarta Sans', sans-serif;
                     background-color: var(--bg);
@@ -124,6 +132,13 @@ def register():
                 <p>Registration for <b>{name}</b> has been locked in for the <b>{event}</b> track. Details sent to <b>{email}</b> and SMS to <b>{phone}</b>.</p>
                 <a href="/" class="btn">Register Another Attendee</a>
             </div>
+            <script>
+                // Apply theme from storage
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'light') {{
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }}
+            </script>
         </body>
         </html>
         """
