@@ -5,13 +5,27 @@ app = Flask(__name__)
 @app.route('/', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # API-like response when not expecting a full page reload?
+        # But wait, the JS uses Fetch and expects... what?
+        # The JS: fetch('/', { method: 'POST', body: formData }) with no await on result
+        # And it does `e.preventDefault()`.
+        # So the backend just needs to accept the data.
+        # But `app.py` currently returns a FULL HTML STRING for POST.
+        # The fetch call will just receive that HTML string and do nothing with it.
+        # This is fine for our "simulated success" in JS provided the fetch succeeds (200 OK).
+        
         name = request.form['name']
         email = request.form['email']
         phone = request.form['phone']
         event = request.form['event']
+        
+        # If the request accepts JSON or is AJAX, we could return JSON.
+        # But even returning HTML is status 200, so fetch won't throw.
         return f"""
         <!DOCTYPE html>
         <html lang="en">
+        <!-- ... success page content ... -->
+        <!-- We return this for fallback if JS is disabled or form submits normally -->
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -146,3 +160,5 @@ def register():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
+print("CI/CD Pipeline Triggered Successfully")

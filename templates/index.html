@@ -18,6 +18,7 @@
             --accent: #22c55e; /* Green-500 */
             --accent-glow: rgba(34, 197, 94, 0.15);
             --error: #ef4444;
+            --grid-line: rgba(255, 255, 255, 0.03);
         }
 
         [data-theme="light"] {
@@ -29,6 +30,7 @@
             --text-secondary: #64748b;
             --accent: #16a34a;
             --accent-glow: rgba(22, 163, 74, 0.15);
+            --grid-line: rgba(0, 0, 0, 0.06);
         }
 
         * {
@@ -50,18 +52,45 @@
             line-height: 1.5;
         }
 
-        /* Decorative Grid Background */
+        /* Animated Background Grid */
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 32px 32px; }
+        }
+
         body::before {
             content: "";
             position: absolute;
             inset: 0;
             background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
             background-size: 32px 32px;
             mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
             z-index: -1;
             pointer-events: none;
+            animation: gridMove 20s linear infinite;
+        }
+
+        /* Ambient Glow Spheres */
+        body::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            z-index: -2;
+            opacity: 0.8; /* Increased from 0.5 for better visibility */
+            pointer-events: none;
+            mix-blend-mode: var(--blend-mode, normal);
+        }
+
+        [data-theme="light"] body::after {
+             opacity: 0.6; /* Slightly lower for light mode so it doesn't look washed out */
         }
 
         .theme-toggle {
@@ -95,6 +124,7 @@
             grid-template-columns: 1fr 1fr;
             gap: 4rem;
             align-items: center;
+            perspective: 1000px; /* Enable 3D space for children (like the card) */
         }
 
         /* Hero Text Side */
@@ -102,6 +132,7 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
+            transform-style: preserve-3d; /* Allow children to live in 3D too if needed */
         }
 
         .badge {
@@ -145,6 +176,15 @@
         }
 
         /* Form Side */
+        .card-container {
+            /* Handles the entrance animation and positioning */
+            opacity: 0;
+            animation: fadeInCard 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation-delay: 0.2s;
+            position: relative;
+            transform-style: preserve-3d; /* Pass through 3D context */
+        }
+        
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -153,6 +193,12 @@
             box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 20px 40px -12px rgba(0,0,0,0.5);
             position: relative;
             overflow: hidden;
+            
+            /* Handles the mouse tilt */
+            transition: transform 0.1s ease;
+            transform-style: preserve-3d;
+            
+            backface-visibility: hidden; /* Added */
         }
 
         /* Top highlight line */
@@ -169,6 +215,16 @@
         .form-group {
             margin-bottom: 2rem;
             position: relative;
+        }
+
+        /* ... */
+
+        /* Form Animations */
+        /* Animation is now on .card-container, so remove it from .card */
+        
+        @keyframes fadeInCard {
+            from { opacity: 0; transform: translateY(20px) rotateX(10deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
         }
 
         .form-group label {
@@ -218,13 +274,43 @@
         }
 
         input:focus, select:focus {
-            border-color: var(--text-secondary);
+            border-color: var(--accent);
             background: var(--bg);
-            box-shadow: 0 0 0 4px rgba(255,255,255,0.03);
+            box-shadow: 0 0 0 4px var(--accent-glow);
         }
 
-        .form-group:focus-within label {
-            color: var(--accent);
+        /* Input Validity Indicators */
+        input:not(:placeholder-shown):valid {
+            border-color: var(--accent);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.25rem;
+        }
+        
+        input:not(:placeholder-shown):invalid {
+            border-color: var(--error);
+        }
+
+        select:invalid {
+            color: var(--text-secondary);
+        }
+        
+        select option {
+            background-color: var(--bg);
+            color: var(--text-primary);
+        }
+
+        /* Hover effect for form groups */
+        .form-group:hover label {
+            color: var(--text-primary);
+        }
+        
+        /* Focus ring animation */
+        @keyframes focusRing {
+            0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+            70% { box-shadow: 0 0 0 10px transparent; }
+            100% { box-shadow: 0 0 0 0 transparent; }
         }
 
         button {
@@ -261,9 +347,310 @@
                 font-size: 2.5rem;
             }
         }
+
+        /* View Transitions API Animations */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+
+        ::view-transition-old(root) {
+            z-index: 1;
+        }
+
+        ::view-transition-new(root) {
+            z-index: 2147483646;
+        }
+
+        html[data-theme="dark"]::view-transition-old(root) {
+            z-index: 1; /* Was 2147483646 */
+        }
+
+        html[data-theme="dark"]::view-transition-new(root) {
+            z-index: 2147483646; /* Was 1 */
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-section > * {
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .hero-section .badge { animation-delay: 0.1s; }
+        
+        .hero-section h1 { 
+            animation-delay: 0.2s; 
+            position: relative;
+            display: inline-block;
+            /* Ensure text is above pseudo-elements if they are negative Z */
+            z-index: 1;
+        }
+
+        /* Glitch Effect - SIMPLIFIED COMPATIBILITY VERSION */
+        .hero-section h1:hover {
+             /* color: var(--accent); Remove color switch which might hide text if vars are wrong */
+             /* animation: glitch-anim ...; Remove main element shaking to stabilize */
+        }
+
+        .hero-section h1:hover::before,
+        .hero-section h1:hover::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent; /* Ensure no background masking */
+        }
+
+        .hero-section h1:hover::before {
+            color: #ff00c1;
+            z-index: -1;
+            transform: translate(-2px, 0);
+            opacity: 0.7;
+            animation: glitch-anim-2 0.5s cubic-bezier(.25, .46, .45, .94) both infinite;
+        }
+
+        .hero-section h1:hover::after {
+            color: #00fff9;
+            z-index: -2;
+            transform: translate(2px, 0);
+            opacity: 0.7;
+            animation: glitch-anim-2 0.5s cubic-bezier(.25, .46, .45, .94) reverse both infinite;
+        }
+
+        .hero-section .description { animation-delay: 0.3s; }
+
+        /* Form Animations */
+        /* Removed .card animation as it is now on .card-container */
+        /* But we update .card here to ensure smooth transitions */
+        .card {
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+        }
+
+        @keyframes fadeInCard {
+            from { opacity: 0; transform: translateY(20px) rotateX(10deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        .card form > * {
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Spinner Animation */
+        .spinner {
+            animation: rotate 2s linear infinite;
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        
+        .spinner .path {
+            stroke: currentColor;
+            stroke-linecap: round;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes dash {
+            0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+            50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+            100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+        }
+
+        .card .form-group:nth-child(1) { animation-delay: 0.4s; }
+        .card .form-group:nth-child(2) { animation-delay: 0.5s; }
+        .card .form-group:nth-child(3) { animation-delay: 0.6s; }
+        .card .form-group:nth-child(4) { animation-delay: 0.7s; }
+        .card button { animation-delay: 0.8s; }
+        
+        /* --- NEW ENHANCEMENTS START --- */
+        
+        /* 1. Film Grain Overlay */
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* 2. Custom Magnetic Cursor */
+        .cursor-dot, 
+        .cursor-outline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+        }
+
+        .cursor-outline {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--text-secondary);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+
+        /* 3. Social Proof Ticker */
+        .ticker-wrap {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            overflow: hidden;
+            height: 36px;
+            line-height: 36px;
+            z-index: 100;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .ticker {
+            display: inline-block;
+            white-space: nowrap;
+            padding-right: 100%;
+            animation: ticker 40s linear infinite;
+        }
+
+        .ticker-item {
+            display: inline-block;
+            padding: 0 2rem;
+        }
+        
+        .ticker-item span { color: var(--accent); font-weight: bold; }
+
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+
+        /* 4. Card Flip (Success State) */
+        .card-container.flipped .card {
+            transform: rotateY(180deg);
+            pointer-events: none; /* Disable interaction with form when flipped */
+        }
+        
+        .card-container.flipped .back-face {
+           /* Backface visibility is hidden, but when container rotates 180, this should be visible if it started at 180 */
+           /* Actually, typically you rotate the faces inside the container, or rotate the container. */
+           /* If container rotates 180, front (0) goes to 180 (hidden). Back (180) goes to 360/0 (visible). */
+           z-index: 20;
+        }
+
+        /* Revised Flip Logic */
+        .card-container {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card-container.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Front Face (The Form) */
+        .card {
+            /* Existing styles... */
+            backface-visibility: hidden; /* CRITICAL for flip */
+            transform: rotateY(0deg); 
+            z-index: 2;
+        }
+
+        /* Back Face (Success) */
+        .back-face {
+            /* distinct from .card but shares dimensions */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            transform: rotateY(180deg);
+            z-index: 1; /* Behind front face initially */
+            
+            /* Visuals */
+            background: var(--surface);
+            border: 1px solid var(--border); 
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+            animation-delay: 0.5s; /* Wait for flip */
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Floating Labels Adjustment */
+        .form-group label {
+            transition: all 0.2s ease;
+        }
+        
+        .form-group:focus-within label {
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+        
+        /* --- END ENHANCEMENTS --- */
     </style>
 </head>
 <body>
+    
+    <!-- UI Elements -->
+    <div class="noise-overlay"></div>
+    <div class="cursor-dot" data-cursor-dot></div>
+    <div class="cursor-outline" data-cursor-outline></div>
+
+    <div class="ticker-wrap">
+        <div class="ticker">
+            <div class="ticker-item">🔥 <span>12 Developers</span> joined in the last hour</div>
+            <div class="ticker-item">⚡ <span>Sarah K.</span> just registered for the Hackathon</div>
+            <div class="ticker-item">🚀 Only <span>45 spots</span> remaining for the Workshop track</div>
+            <div class="ticker-item">💎 <span>Team Alpha</span> is looking for a frontend dev</div>
+            <div class="ticker-item">🔥 <span>12 Developers</span> joined in the last hour</div>
+            <div class="ticker-item">⚡ <span>Mike R.</span> just reserved a spot</div>
+        </div>
+    </div>
 
     <button class="theme-toggle" id="themeToggle" title="Toggle Theme">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon" id="moonIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -274,64 +661,198 @@
         <!-- Left Side: Copy -->
         <div class="hero-section">
             <div class="badge">Registration Open</div>
-            <h1>Secure Your<br><span>Spot Today.</span></h1>
+            <h1 data-text="Secure Your  Spot Today.">Secure Your<br><span>Spot Today.</span></h1>
             <p class="description">
                 Join thousands of developers, designers, and creators building the future. Select your track and get started.
             </p>
         </div>
 
         <!-- Right Side: Form -->
-        <div class="card">
-            <form method="POST" id="registrationForm">
-                <div class="form-group">
-                    <label for="name">01 // Identity</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="name" name="name" placeholder="What should we call you?" required autocomplete="off">
+        <div class="card-container" id="cardContainer">
+            <!-- Front Face -->
+            <div class="card">
+                <form method="POST" id="registrationForm">
+                    <div class="form-group">
+                        <label for="name">01 // Identity</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="name" name="name" placeholder="What should we call you?" required autocomplete="off">
+                        </div>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label for="email">02 // Contact</label>
-                    <div class="input-wrapper">
-                        <input type="email" id="email" name="email" placeholder="name@company.com" required autocomplete="off">
+                    <div class="form-group">
+                        <label for="email">02 // Contact</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="email" name="email" placeholder="name@company.com" required autocomplete="off">
+                        </div>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label for="phone">03 // Phone</label>
-                    <div class="input-wrapper">
-                        <input type="tel" id="phone" name="phone" placeholder="+1 (555) 000-0000" required autocomplete="off">
+                    <div class="form-group">
+                        <label for="phone">03 // Phone</label>
+                        <div class="input-wrapper">
+                            <input type="tel" id="phone" name="phone" placeholder="+1 (555) 000-0000" required autocomplete="off">
+                        </div>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label for="event">04 // Track Selection</label>
-                    <div class="input-wrapper select-wrapper">
-                        <select id="event" name="event">
-                            <option value="" disabled selected>Select your path...</option>
-                            <option value="Hackathon">Engineering Track (Hackathon)</option>
-                            <option value="Workshop">Skills Laboratory (Workshop)</option>
-                            <option value="Seminar">Focus Session (Seminar)</option>
-                        </select>
+                    <div class="form-group">
+                        <label for="event">04 // Track Selection</label>
+                        <div class="input-wrapper select-wrapper">
+                            <select id="event" name="event">
+                                <option value="" disabled selected>Select your path...</option>
+                                <option value="Hackathon">Engineering Track (Hackathon)</option>
+                                <option value="Workshop">Skills Laboratory (Workshop)</option>
+                                <option value="Seminar">Focus Session (Seminar)</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
 
-                <button type="submit" id="submitBtn">
-                    Confirm Registration &rarr;
-                </button>
-            </form>
+                    <button type="submit" id="submitBtn">
+                        Confirm Registration &rarr;
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Back Face (Success) -->
+            <div class="back-face" id="successFace" style="display:none;"> <!-- Hidden initially to prevent initial flash, JS will enable -->
+                <div class="success-icon">✨</div>
+                <h2>You're In!</h2>
+                <p class="description" style="margin-top: 1rem; font-size: 0.9rem;">
+                    Welcome to the future. Check your email for access codes.
+                </p>
+                <div style="margin-top: 2rem; width: 100%;">
+                    <div class="badge">Registration Confirmed</div>
+                </div>
+            </div>
         </div>
     </div>
 
 <script>
     const btn = document.getElementById('submitBtn');
     const form = document.getElementById('registrationForm');
+    const card = document.querySelector('.card');
+    const cardContainer = document.querySelector('.card-container');
+    const successFace = document.getElementById('successFace');
 
-    form.onsubmit = () => {
+    // Show success face once loaded to avoid FOUC, but it's hidden by backface-visibility anyway when not flipped
+    // Just ensure it's display:flex (we set it to display:none in inline style to be safe)
+    window.addEventListener('DOMContentLoaded', () => {
+        successFace.style.display = 'flex';
+    });
+
+    // --- Cursor Logic ---
+    const cursorDot = document.querySelector('[data-cursor-dot]');
+    const cursorOutline = document.querySelector('[data-cursor-outline]');
+
+    window.addEventListener('mousemove', (e) => {
+        const posX = e.clientX;
+        const posY = e.clientY;
+
+        // Dot follows instantly
+        cursorDot.style.left = `${posX}px`;
+        cursorDot.style.top = `${posY}px`;
+
+        // Outline follows with lag (handled by CSS transition, we just set position)
+        // We need to use animate() for smoother trailing or just set styles if transition is set
+        cursorOutline.animate({
+            left: `${posX}px`,
+            top: `${posY}px`
+        }, { duration: 500, fill: "forwards" });
+        
+        // Tilt Card Logic (re-implemented here)
+        if (window.innerWidth > 800) {
+            const x = (window.innerWidth / 2 - posX) / 25;
+            const y = (window.innerHeight / 2 - posY) / 25;
+            // IMPORTANT: If flipped, we must maintain the 180deg offset!
+            // But wait, the tilt is on .card (child), the flip is on .card-container (parent).
+            // So we can just tilt the child without worrying about the parent's flip state?
+            // Yes, BUT backface-visibility might get weird.
+            // Actually, keep tilt on card.
+            if (!cardContainer.classList.contains('flipped')) {
+                 card.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${y}deg)`;
+            }
+        }
+    });
+
+    // Magnetic Effect on interactive elements
+    const interactiveElements = document.querySelectorAll('button, a, input, select, .theme-toggle');
+    interactiveElements.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            cursorOutline.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            cursorOutline.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            cursorDot.style.transform = 'translate(-50%, -50%) scale(0)'; // hide dot
+        });
+        el.addEventListener('mouseleave', () => {
+            cursorOutline.style.transform = 'translate(-50%, -50%) scale(1)';
+            cursorOutline.style.backgroundColor = 'transparent';
+            cursorDot.style.transform = 'translate(-50%, -50%) scale(1)'; // show dot
+        });
+    });
+
+    // Reset card position on mouse leave
+    document.addEventListener('mouseleave', () => {
+         card.style.transform = `perspective(1000px) rotateY(0deg) rotateX(0deg)`;
+    });
+
+    // --- Confetti Logic ---
+    function fireConfetti() {
+        // Simple particle explosion using DOM elements to avoid canvas complexity vs z-index issues
+        const colors = ['#22c55e', '#ffffff', '#a1a1aa'];
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.style.position = 'fixed';
+            particle.style.width = '8px';
+            particle.style.height = '8px';
+            particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.top = '50%';
+            particle.style.left = '75%'; // Center of the right side (where card is roughly)
+            particle.style.pointerEvents = 'none';
+            particle.style.borderRadius = '50%';
+            particle.style.zIndex = '10000';
+            document.body.appendChild(particle);
+
+            // Random destination
+            const tx = (Math.random() - 0.5) * 400;
+            const ty = (Math.random() - 0.5) * 400;
+            
+            const animation = particle.animate([
+                { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: 1000 + Math.random() * 500,
+                easing: 'cubic-bezier(0, .9, .57, 1)',
+                fill: 'forwards'
+            });
+
+            animation.onfinish = () => particle.remove();
+        }
+    }
+
+    form.onsubmit = async (e) => {
+        e.preventDefault(); // Stop normal submission
+
         // Change button state to loading
-        btn.innerText = 'Processing Request...';
-        btn.style.opacity = '0.7';
+        btn.innerHTML = `
+            <svg class="spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
+            Processing...
+        `;
+        btn.style.opacity = '0.8';
         btn.style.cursor = 'wait';
+
+        // Simulate network delay (800ms) then flip
+        // We use fetch to actually send data (fire and forget for this UX demo)
+        const formData = new FormData(form);
+        try {
+            fetch('/', {
+                method: 'POST',
+                body: formData
+            }); // Don't await, just let it happen
+        } catch(err) { console.log(err); }
+
+        setTimeout(() => {
+            // Flip the card
+            cardContainer.classList.add('flipped');
+            // Fire confetti
+            setTimeout(fireConfetti, 300); // slight delay to match flip halfway
+        }, 1500);
     };
 
     // Theme Toggle Logic
@@ -346,11 +867,13 @@
         html.setAttribute('data-theme', 'light');
         moonIcon.style.display = 'none';
         sunIcon.style.display = 'block';
+    } else {
+        html.setAttribute('data-theme', 'dark'); // Default to dark explicitly if not set or set to dark
     }
 
-    toggleBtn.addEventListener('click', () => {
+    function updateTheme() {
         if (html.getAttribute('data-theme') === 'light') {
-            html.removeAttribute('data-theme');
+            html.setAttribute('data-theme', 'dark');
             localStorage.setItem('theme', 'dark');
             moonIcon.style.display = 'block';
             sunIcon.style.display = 'none';
@@ -360,6 +883,40 @@
             moonIcon.style.display = 'none';
             sunIcon.style.display = 'block';
         }
+    }
+
+    toggleBtn.addEventListener('click', (event) => {
+        if (!document.startViewTransition) {
+            updateTheme();
+            return;
+        }
+
+        const x = event.clientX;
+        const y = event.clientY;
+        const endRadius = Math.hypot(
+            Math.max(x, innerWidth - x),
+            Math.max(y, innerHeight - y)
+        );
+        
+        const transition = document.startViewTransition(async () => {
+            updateTheme();
+        });
+
+        transition.ready.then(() => {
+            document.documentElement.animate(
+                {
+                    clipPath: [
+                        `circle(0px at ${x}px ${y}px)`,
+                        `circle(${endRadius}px at ${x}px ${y}px)`,
+                    ],
+                },
+                {
+                    duration: 500,
+                    easing: 'ease-in',
+                    pseudoElement: '::view-transition-new(root)',
+                }
+            );
+        });
     });
 </script>
 
