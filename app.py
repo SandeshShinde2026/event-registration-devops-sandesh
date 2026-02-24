@@ -7,6 +7,7 @@ def register():
     if request.method == 'POST':
         name = request.form['name']
         email = request.form['email']
+        phone = request.form['phone']
         event = request.form['event']
         return f"""
         <!DOCTYPE html>
@@ -120,7 +121,7 @@ def register():
             <div class="success-card">
                 <div class="icon">● STATUS: CONFIRMED</div>
                 <h2>You're In.</h2>
-                <p>Registration for <b>{name}</b> has been locked in for the <b>{event}</b> track. Details sent to <b>{email}</b>.</p>
+                <p>Registration for <b>{name}</b> has been locked in for the <b>{event}</b> track. Details sent to <b>{email}</b> and SMS to <b>{phone}</b>.</p>
                 <a href="/" class="btn">Register Another Attendee</a>
             </div>
         </body>
